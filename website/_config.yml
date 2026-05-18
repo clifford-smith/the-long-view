@@ -1,0 +1,16 @@
+title: "The Long View"
+description: "Thinking out loud, all day long. A 24/7 AI radio station for curious minds."
+baseurl: "/the-long-view"
+url: "https://YOUR_GITHUB_USERNAME.github.io"
+author: "Aria"
+
+theme: minima
+
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - "*.md"
