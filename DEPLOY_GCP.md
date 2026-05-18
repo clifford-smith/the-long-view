@@ -1,26 +1,92 @@
-# The Long View — Oracle Cloud Deployment Guide
+# The Long View — Google Cloud Deployment Guide
 
-Everything below runs on the Oracle Cloud VM, not your local machine. SSH in first.
+Everything below runs on your GCP VM, not your local machine. SSH in first.
+
+> **Cost note:** GCP's Always Free tier (e2-micro, 1 vCPU / 1 GB) is too small to run Ollama + Icecast.
+> Use the **$300 free trial** (90 days) to get started, then budget ~$100/month for an e2-standard-4.
+> Oracle Cloud Always Free (VM.Standard.A1.Flex, 4 OCPUs / 24 GB) is $0 forever — see `DEPLOY.md` if cost is a constraint.
 
 ---
 
-## Step 1: Provision Oracle Cloud Always Free VM
+## Step 1: Install the gcloud CLI (local machine)
 
-1. Sign into [cloud.oracle.com](https://cloud.oracle.com)
-2. Compute → Instances → Create Instance
-3. Shape: **VM.Standard.A1.Flex** (Ampere) — 4 OCPUs, 24 GB RAM
-4. OS: **Ubuntu 22.04** (Canonical)
-5. Add your SSH public key (`~/.ssh/id_rsa.pub` or equivalent)
-6. Create — note the public IP
+Follow the official installer for your OS:
+- **Windows / macOS / Linux:** https://cloud.google.com/sdk/docs/install
 
-SSH in:
+After installing:
+
 ```bash
-ssh ubuntu@YOUR_ORACLE_IP
+gcloud init
+```
+
+Sign in with your Google account, select or create a project (e.g. `the-long-view`), and set a default region:
+
+```bash
+gcloud config set project the-long-view
+gcloud config set compute/region us-central1
+gcloud config set compute/zone us-central1-a
+```
+
+Enable the Compute Engine API:
+
+```bash
+gcloud services enable compute.googleapis.com
 ```
 
 ---
 
-## Step 2: Install system dependencies
+## Step 2: Create the VM
+
+```bash
+gcloud compute instances create longview-radio \
+  --machine-type=e2-standard-4 \
+  --image-family=ubuntu-2204-lts \
+  --image-project=ubuntu-os-cloud \
+  --boot-disk-size=50GB \
+  --boot-disk-type=pd-balanced \
+  --tags=longview-radio \
+  --metadata=enable-oslogin=TRUE
+```
+
+**Shape breakdown:**
+- `e2-standard-4` — 4 vCPU, 16 GB RAM (~$100/mo after free trial)
+- 50 GB disk — enough for the model, music library, and 48 h of segments
+
+Note the external IP in the output (`EXTERNAL_IP`).
+
+SSH in:
+
+```bash
+gcloud compute ssh ubuntu@longview-radio --zone=us-central1-a
+```
+
+Or use standard SSH after adding your key:
+
+```bash
+ssh ubuntu@YOUR_EXTERNAL_IP
+```
+
+---
+
+## Step 3: Open firewall port 8000
+
+```bash
+gcloud compute firewall-rules create allow-icecast \
+  --allow=tcp:8000 \
+  --target-tags=longview-radio \
+  --description="Icecast streaming port" \
+  --source-ranges=0.0.0.0/0
+```
+
+Verify the rule exists:
+
+```bash
+gcloud compute firewall-rules describe allow-icecast
+```
+
+---
+
+## Step 4: Install system dependencies
 
 ```bash
 sudo apt update && sudo apt upgrade -y
@@ -50,7 +116,7 @@ opam install liquidsoap
 
 ---
 
-## Step 3: Install Ollama and pull the model
+## Step 5: Install Ollama and pull the model
 
 ```bash
 curl -fsSL https://ollama.ai/install.sh | sh
@@ -72,16 +138,15 @@ Gemma 4 model memory usage at Q8 quantization:
 |-----|--------|-------|
 | `gemma4:e2b` | 5.95 GB | Fits entirely in 8 GB VRAM (e.g. RTX 3060 Ti) with no CPU offload; fits any CPU-only VM |
 | `gemma4:e4b` | 9.02 GB | **Default (this config)**; fits CPU-only VMs with ≥16 GB RAM |
-| `gemma4:26b` | 17.99 GB | Oracle 24 GB only (~6 GB headroom) |
-| `gemma4:31b` | 19.98 GB | Oracle 24 GB only (~4 GB headroom, tight) |
+| `gemma4:26b` | 17.99 GB | Oracle 24 GB only |
+| `gemma4:31b` | 19.98 GB | Oracle 24 GB only (tight) |
 
-> **Want maximum quality on Oracle's 24 GB VM?** Use `gemma4:26b` (17.99 GB):
-> `ollama pull gemma4:26b` — then update `config.yml` → `llm.model: "gemma4:26b"`.
-> Do not use `gemma4:26b` on a 16 GB GCP VM.
+> **On e2-standard-4 (16 GB):** `gemma4:e4b` (9.02 GB) fits with ~7 GB headroom for OS + services.
+> Avoid `gemma4:26b` (17.99 GB) on GCP 16 GB VMs — use it only on Oracle's 24 GB instance.
 
 ---
 
-## Step 4: Clone the repo and set up Python environment
+## Step 6: Clone the repo and set up Python environment
 
 ```bash
 git clone https://github.com/YOUR_GITHUB_USERNAME/the-long-view.git /home/ubuntu/the-long-view
@@ -93,21 +158,19 @@ pip install -r requirements.txt
 
 ---
 
-## Step 5: Fill in real values in config.yml
-
-Edit `config.yml` and replace all placeholder values:
+## Step 7: Fill in real values in config.yml
 
 ```bash
 nano config.yml
 ```
 
 Replace:
-- `YOUR_ORACLE_IP` → your VM's public IP
+- `YOUR_ORACLE_IP` → your VM's external IP (GCP calls it `EXTERNAL_IP`)
 - `YOUR_GITHUB_USERNAME` → your GitHub username
 
 ---
 
-## Step 6: Configure Icecast
+## Step 8: Configure Icecast
 
 Replace the placeholder passwords in `stream/icecast.xml`, then install:
 
@@ -124,14 +187,13 @@ curl http://localhost:8000/status.xsl
 
 ---
 
-## Step 7: Download CC music library (500+ tracks)
+## Step 9: Download CC music library (500+ tracks)
 
 ```bash
 pip install yt-dlp
 mkdir -p audio/assets/music
 
 # Download ambient/instrumental tracks from Free Music Archive
-# Search freemusicarchive.org for CC-licensed tracks and download:
 yt-dlp --extract-audio --audio-format mp3 --audio-quality 5 \
   -o "audio/assets/music/%(title)s.%(ext)s" \
   "https://freemusicarchive.org/genre/Ambient/"
@@ -152,7 +214,7 @@ tracks = []
 for mp3 in music_dir.glob("*.mp3"):
     tracks.append({
         "path": str(mp3),
-        "mood": "calm",       # Tag manually or extend this script
+        "mood": "calm",
         "tempo": "slow",
         "genre": "ambient",
         "duration": 180,
@@ -167,7 +229,7 @@ EOF
 
 ---
 
-## Step 8: Generate the first segment manually
+## Step 10: Generate the first segment manually
 
 ```bash
 source venv/bin/activate
@@ -179,12 +241,9 @@ A `.mp3` file appears in `audio/assets/output/segments/`.
 
 ---
 
-## Step 9: Create station ID jingle (required for Liquidsoap fallback)
-
-Record or generate a short (~10 second) station ID MP3 and save it:
+## Step 11: Create station ID jingle (required for Liquidsoap fallback)
 
 ```bash
-# Quick option using edge-tts:
 source venv/bin/activate
 python - <<'EOF'
 import asyncio, edge_tts
@@ -197,7 +256,7 @@ EOF
 
 ---
 
-## Step 10: Update Liquidsoap config
+## Step 12: Update Liquidsoap config
 
 Edit `stream/liquidsoap.liq` and replace:
 - `YOUR_KOFI_URL` → your Ko-fi URL
@@ -206,7 +265,7 @@ Edit `stream/liquidsoap.liq` and replace:
 
 ---
 
-## Step 11: Create systemd services
+## Step 13: Create systemd services
 
 ### Liquidsoap stream service
 
@@ -267,32 +326,19 @@ journalctl -u longview-scheduler -f
 
 ---
 
-## Step 12: Open firewall port 8000
+## Step 14: Test the stream
 
-**On Oracle Cloud console:**
-1. Networking → Virtual Cloud Networks → your VCN
-2. Security Lists → Default Security List
-3. Add Ingress Rule: Source `0.0.0.0/0`, Protocol TCP, Port `8000`
+From your local machine, open in VLC or a browser:
 
-**On the VM:**
-
-```bash
-sudo ufw allow 8000/tcp
-sudo ufw reload
+```
+http://YOUR_EXTERNAL_IP:8000/stream
 ```
 
-**Test from your local machine:**
-```
-http://YOUR_ORACLE_IP:8000/stream
-```
-
-Open in VLC or a browser — Aria should be on air.
+Aria should be on air.
 
 ---
 
-## Step 13: Deploy website to GitHub Pages
-
-Create a GitHub repo named `the-long-view`. Then:
+## Step 15: Deploy website to GitHub Pages
 
 ```bash
 # On your local machine (not the VM)
@@ -306,11 +352,11 @@ git subtree push --prefix website origin gh-pages
 
 Go to GitHub repo → Settings → Pages → Source: `gh-pages` branch.
 
-Update `website/index.html` and `website/_config.yml` with real URLs and push again.
+Update `website/index.html` and `website/_config.yml` with your real stream URL and push again.
 
 ---
 
-## Step 14: Submit podcast to directories
+## Step 16: Submit podcast to directories
 
 Your podcast feed URL is:
 ```
@@ -325,7 +371,7 @@ Both are free and take 24–72 hours to approve.
 
 ---
 
-## Step 15: Set up Ko-fi
+## Step 17: Set up Ko-fi
 
 1. Create account at [ko-fi.com](https://ko-fi.com)
 2. Copy your Ko-fi URL (e.g. `https://ko-fi.com/thelongview`)
@@ -336,7 +382,7 @@ Both are free and take 24–72 hours to approve.
 
 ---
 
-## Step 16: Set up Mastodon posting (optional)
+## Step 18: Set up Mastodon posting (optional)
 
 1. Create an account on [mastodon.social](https://mastodon.social)
 2. Go to Preferences → Development → New Application → give it "write:statuses" scope
@@ -367,14 +413,8 @@ curl -s http://localhost:8000/status-json.xsl | python3 -m json.tool
 du -sh audio/assets/output/
 ```
 
-The `.gitignore` excludes MP3 files from the segments directory. Run a cron job to prune old segments:
+Prune old segments with a cron job:
 
-```bash
-# Delete segments older than 48 hours (add to crontab)
-0 * * * * find /home/ubuntu/the-long-view/audio/assets/output/segments -name "*.mp3" -mmin +2880 -delete
-```
-
-Add to crontab:
 ```bash
 crontab -e
 # Add: 0 * * * * find /home/ubuntu/the-long-view/audio/assets/output/segments -name "*.mp3" -mmin +2880 -delete
@@ -382,19 +422,50 @@ crontab -e
 
 ---
 
+## Keeping costs down on GCP
+
+The $300 free trial lasts 90 days. Once it runs out:
+
+| Option | Cost | Trade-off |
+|--------|------|-----------|
+| `e2-standard-4` (4 vCPU / 16 GB) | ~$100/mo | Comfortable headroom for Ollama |
+| `e2-standard-2` (2 vCPU / 8 GB) | ~$50/mo | Tight but workable; Ollama generation slower |
+| `e2-medium` (2 vCPU / 4 GB) | ~$27/mo | Ollama may OOM under load |
+| Oracle Cloud Always Free | $0/forever | 4 OCPUs / 24 GB Ampere — see `DEPLOY.md` |
+
+To stop the VM without deleting it (saves ~95% cost while idle):
+
+```bash
+gcloud compute instances stop longview-radio --zone=us-central1-a
+```
+
+To restart:
+
+```bash
+gcloud compute instances start longview-radio --zone=us-central1-a
+```
+
+Note: the external IP changes on restart unless you reserve a static IP:
+
+```bash
+gcloud compute addresses create longview-ip --region=us-central1
+gcloud compute instances delete-access-config longview-radio \
+  --access-config-name="External NAT" --zone=us-central1-a
+gcloud compute instances add-access-config longview-radio \
+  --access-config-name="External NAT" \
+  --address=$(gcloud compute addresses describe longview-ip \
+              --region=us-central1 --format='get(address)') \
+  --zone=us-central1-a
+```
+
+Static IPs cost ~$7/mo when not attached to a running instance; $0 when attached.
+
+---
+
 ## The station is live. Aria is on air.
 
-From here, the system runs itself. The scheduler generates content 2 hours ahead of each slot. Liquidsoap plays it. The podcast feed updates automatically. Revenue grows as the audience does.
+From here, the system runs itself. The scheduler generates content 2 hours ahead of each slot. Liquidsoap plays it. The podcast feed updates automatically.
 
 The only ongoing maintenance: keep the VM running, top up the music library occasionally, and activate sponsors in `content/sponsors.yml` when they arrive.
 
-**Adding sponsors:** Every sponsor entry requires a `categories` list. Sponsors whose categories match the blocked list in `monetization/sponsor_manager.py` are silently skipped at broadcast time regardless of their `active` flag. Blocked categories include: `anti_science`, `climate_denial`, `anti_vaccine`, `misinformation`, `pseudoscience`, `conspiracy`, `anti_technology`, `surveillance_tech`, `tobacco`, `fossil_fuel`, `firearms`, `gambling`, `predatory_finance`, `payday_loans`, `crypto`, `nft`, `political`, `partisan`. Example entry:
-
-```yaml
-- name: "Brilliant"
-  copy: "This segment is brought to you by Brilliant..."
-  url: "https://brilliant.org/longview"
-  active: true
-  slots: ["the_stack", "deep_cuts", "night_school"]
-  categories: ["education", "science", "technology"]
-```
+**Adding sponsors:** Every sponsor entry requires a `categories` list. Sponsors whose categories match the blocked list in `monetization/sponsor_manager.py` are silently skipped at broadcast time regardless of their `active` flag. See `DEPLOY.md` for the full blocked categories list and an example entry.

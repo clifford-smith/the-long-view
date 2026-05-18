@@ -14,6 +14,7 @@ class SegmentMeta:
     duration_seconds: int
     published: datetime
     guid: str
+    file_size_bytes: int = 0
 
 
 def generate_rss(
@@ -41,7 +42,8 @@ def generate_rss(
         enc = ET.SubElement(item, "enclosure")
         enc.set("url", ep.audio_url)
         enc.set("type", "audio/mpeg")
-        enc.set("length", str(ep.duration_seconds * 16000))
+        length = ep.file_size_bytes if ep.file_size_bytes else ep.duration_seconds * 16000
+        enc.set("length", str(length))
 
         ET.SubElement(item, "itunes:duration").text = str(ep.duration_seconds)
 

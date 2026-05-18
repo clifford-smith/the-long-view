@@ -1,9 +1,12 @@
 from __future__ import annotations
+import logging
 import re
 import feedparser
 from datetime import datetime
 from difflib import SequenceMatcher
 from dataclasses import dataclass
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -38,7 +41,8 @@ def fetch_feed(url: str, source_name: str) -> list[Story]:
                 url=getattr(entry, 'link', ''),
             ))
         return stories
-    except Exception:
+    except Exception as exc:
+        log.warning("Failed to fetch feed %s (%s): %s", source_name, url, exc)
         return []
 
 
@@ -76,4 +80,8 @@ def get_top_stories(feeds: list[dict], n: int = 5) -> list[Story]:
     for feed_cfg in feeds:
         all_stories.extend(fetch_feed(feed_cfg['url'], feed_cfg['name']))
     unique = deduplicate(all_stories)
-    return sorted(unique, key=score_story, reverse=True)[:n]
+    log.debug("Fetched %d stories, %d after dedup.", len(all_stories), len(unique))
+    top = sorted(unique, key=score_story, reverse=True)[:n]
+    if not top:
+        log.warning("No stories returned from any feed — script brief will be empty.")
+    return top

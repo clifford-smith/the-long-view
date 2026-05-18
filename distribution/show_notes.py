@@ -1,6 +1,9 @@
 from __future__ import annotations
+import logging
 from datetime import datetime
 from pathlib import Path
+
+log = logging.getLogger(__name__)
 
 
 _AFFILIATE_TRIGGERS = {
@@ -76,4 +79,5 @@ def write_post(
         generate_post(title, script, slot, published, affiliates),
         encoding="utf-8",
     )
+    log.info("Show notes written: %s", filename)
     return filename

@@ -5,3 +5,11 @@ sponsors: []
 #   url: "https://brilliant.org/longview"
 #   active: false
 #   slots: ["the_stack", "deep_cuts", "night_school"]
+#   categories: ["education", "science", "technology"]
+#
+# The categories field is required for vetting. Sponsors whose categories
+# intersect the BLOCKED_CATEGORIES set in sponsor_manager.py are never aired.
+# Blocked categories include: anti_science, climate_denial, anti_vaccine,
+# misinformation, pseudoscience, conspiracy, anti_technology, surveillance_tech,
+# tobacco, fossil_fuel, firearms, gambling, predatory_finance, payday_loans,
+# crypto, nft, political, partisan.

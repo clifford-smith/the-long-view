@@ -4,17 +4,65 @@ APScheduler triggers content generation for each slot.
 """
 from __future__ import annotations
 import logging
+import signal
 from datetime import datetime
 from pathlib import Path
+import requests
 import yaml
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 log = logging.getLogger(__name__)
 
+_REQUIRED_SLOTS = {
+    "morning_drift", "the_stack", "midday",
+    "deep_cuts", "drive", "night_school", "archive",
+}
+
 
 def _load_config() -> dict:
     root = Path(__file__).parent.parent
     return yaml.safe_load((root / "config.yml").read_text(encoding="utf-8"))
+
+
+def _validate_startup(config: dict, root: Path) -> None:
+    """Check critical dependencies before scheduling begins. Raises on hard failures."""
+    ollama_url = config.get("llm", {}).get("base_url", "http://localhost:11434")
+    try:
+        requests.get(f"{ollama_url}/api/version", timeout=5)
+        log.info("Ollama reachable at %s", ollama_url)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Ollama is not running at {ollama_url}. Start it with: ollama serve\n({exc})"
+        ) from exc
+
+    prompts_dir = root / config.get("paths", {}).get("prompts", "content/prompts")
+    missing_prompts = [
+        slot for slot in _REQUIRED_SLOTS
+        if not (prompts_dir / f"{slot}.txt").exists()
+    ]
+    if missing_prompts:
+        raise RuntimeError(
+            f"Missing slot prompt files: {', '.join(sorted(missing_prompts))}. "
+            f"Expected in {prompts_dir}/"
+        )
+
+    music_index_path = root / config.get("paths", {}).get("music_index", "audio/assets/music_index.json")
+    if music_index_path.exists():
+        import json
+        idx = json.loads(music_index_path.read_text(encoding="utf-8"))
+        track_count = len(idx.get("tracks", []))
+        if track_count == 0:
+            log.warning("Music library is empty — Liquidsoap will fall back to station ID jingle.")
+        else:
+            log.info("Music library: %d tracks indexed.", track_count)
+    else:
+        log.warning("Music index not found at %s — stream will use fallback audio.", music_index_path)
+
+    jingle_path = root / config.get("paths", {}).get("jingles", "audio/assets/jingles") / "station_id.mp3"
+    if not jingle_path.exists():
+        log.warning("Station ID jingle missing at %s — Liquidsoap fallback will be silent.", jingle_path)
+    else:
+        log.info("Station ID jingle found.")
 
 
 def generate_slot(slot: str) -> None:
@@ -98,15 +146,17 @@ def generate_slot(slot: str) -> None:
     )
 
     feed_path = root / config['paths']['podcast_feed']
+    file_size = output_path.stat().st_size if output_path.exists() else 0
     add_episode(
         feed_path=feed_path,
         episode=SegmentMeta(
             title=title,
             description=script[:200].replace("[PAUSE]", " ").strip() + "...",
             audio_url=config['station']['stream_url'].rstrip('/') + f"/segments/{output_path.name}",
-            duration_seconds=int(output_path.stat().st_size / 16000) if output_path.exists() else 0,
+            duration_seconds=int(file_size / 16000) if file_size else 0,
             published=now,
             guid=f"{timestamp}-{slot}",
+            file_size_bytes=file_size,
         ),
         station_title=config['station']['name'],
         station_url=config['station']['website_url'],
@@ -122,7 +172,16 @@ def generate_slot(slot: str) -> None:
 
 def run_scheduler() -> None:
     config = _load_config()
+    _validate_startup(config, Path(__file__).parent.parent)
+
     scheduler = BlockingScheduler(timezone="UTC")
+
+    def _shutdown(signum, frame):
+        log.info("Shutdown signal %s received — stopping scheduler.", signum)
+        scheduler.shutdown(wait=False)
+
+    signal.signal(signal.SIGTERM, _shutdown)
+    signal.signal(signal.SIGINT, _shutdown)
 
     for slot, times in config['schedule'].items():
         start = times['start']

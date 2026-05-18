@@ -12,7 +12,7 @@ stream:
   password: "changeme"
 
 llm:
-  model: "llama3.1:8b"
+  model: "gemma4:e4b"
   base_url: "http://localhost:11434"
 
 tts:

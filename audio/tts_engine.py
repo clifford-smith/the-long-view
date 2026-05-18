@@ -1,8 +1,11 @@
 from __future__ import annotations
 import asyncio
+import logging
 import subprocess
 from pathlib import Path
 import edge_tts
+
+log = logging.getLogger(__name__)
 
 
 def split_on_pauses(script: str) -> list[str]:
@@ -37,12 +40,16 @@ def _concat_with_silence(part_files: list[Path], output_path: Path, silence_dura
             if i < len(part_files) - 1:
                 f.write(f"file '{silence.resolve()}'\n")
 
-    subprocess.run([
-        "ffmpeg", "-f", "concat", "-safe", "0", "-i", str(concat_list),
-        "-af", "loudnorm=I=-16:TP=-1.5:LRA=11,aecho=0.8:0.9:40:0.3",
-        "-ar", "44100", "-b:a", "128k",
-        str(output_path), "-y"
-    ], check=True, capture_output=True)
+    try:
+        subprocess.run([
+            "ffmpeg", "-f", "concat", "-safe", "0", "-i", str(concat_list),
+            "-af", "loudnorm=I=-16:TP=-1.5:LRA=11,aecho=0.8:0.9:40:0.3",
+            "-ar", "44100", "-b:a", "128k",
+            str(output_path), "-y"
+        ], check=True, capture_output=True)
+    except subprocess.CalledProcessError as exc:
+        log.error("FFmpeg concat failed: %s", exc.stderr.decode(errors="replace"))
+        raise
 
     for f in tmp.iterdir():
         f.unlink()
@@ -52,6 +59,7 @@ def _concat_with_silence(part_files: list[Path], output_path: Path, silence_dura
 
 
 def render_script(script: str, output_path: Path, voice: str = "en-US-AriaNeural") -> Path:
+    log.info("Rendering TTS: %d parts → %s", len(split_on_pauses(script)), output_path.name)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     parts = split_on_pauses(script)
     work_dir = output_path.parent / "_parts"

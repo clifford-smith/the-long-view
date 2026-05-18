@@ -1,7 +1,10 @@
 from __future__ import annotations
+import logging
 from pathlib import Path
 import ollama
 import yaml
+
+log = logging.getLogger(__name__)
 
 
 def _load_config() -> dict:
@@ -48,14 +51,20 @@ def write_script(
         "No stage directions. No markdown. Plain spoken English only."
     )
 
-    response = ollama.chat(
-        model=config['llm']['model'],
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": "".join(parts)},
-        ],
-    )
+    log.info("Generating script for slot=%s (model=%s)", slot, config['llm']['model'])
+    try:
+        response = ollama.chat(
+            model=config['llm']['model'],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": "".join(parts)},
+            ],
+        )
+    except Exception as exc:
+        log.error("Ollama generation failed for slot=%s: %s", slot, exc)
+        raise
     script = response["message"]["content"]
+    log.info("Script generated: %d words for slot=%s", len(script.split()), slot)
 
     if sponsor_copy:
         script = inject_sponsor_spot(script, sponsor_copy)
