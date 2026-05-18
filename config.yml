@@ -16,9 +16,7 @@ llm:
   base_url: "http://localhost:11434"
 
 tts:
-  voice: "en-US-AriaNeural"
-  rate: "-5%"
-  pitch: "-2Hz"
+  voice: "/home/ubuntu/the-long-view/audio/assets/tts_models/en_US-amy-medium.onnx"
 
 feeds:
   - url: "https://feeds.bbci.co.uk/news/world/rss.xml"

@@ -1,9 +1,8 @@
 from __future__ import annotations
-import asyncio
 import logging
 import subprocess
+import wave
 from pathlib import Path
-import edge_tts
 
 log = logging.getLogger(__name__)
 
@@ -12,13 +11,17 @@ def split_on_pauses(script: str) -> list[str]:
     return [p.strip() for p in script.split("[PAUSE]") if p.strip()]
 
 
-async def _synthesize(text: str, voice: str, output_path: Path) -> None:
-    communicate = edge_tts.Communicate(text, voice)
-    await communicate.save(str(output_path))
-
-
 def _tts_part(text: str, voice: str, output_path: Path) -> Path:
-    asyncio.run(_synthesize(text, voice, output_path))
+    from piper import PiperVoice
+    pv = PiperVoice.load(voice)
+    wav_path = output_path.with_suffix(".wav")
+    with wave.open(str(wav_path), "wb") as wf:
+        pv.synthesize(text, wf)
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(wav_path), "-q:a", "2", str(output_path)],
+        check=True, capture_output=True,
+    )
+    wav_path.unlink(missing_ok=True)
     return output_path
 
 
