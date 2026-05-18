@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(superpowers:brainstorming)",
+      "Skill(superpowers:writing-plans)",
+      "Skill(superpowers:subagent-driven-development)",
+      "Read(//mnt/a/**)",
+      "Bash(dir \"A:\\\\Radio_Claude\")",
+      "Bash(pip install *)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(python -m pip --version)",
+      "Bash(echo \"exit=$?\")",
+      "Read(//tmp/**)",
+      "PowerShell(pip install *)",
+      "PowerShell(python -m pip install feedparser==6.0.11 2>&1; Write-Host \"EXIT: $LASTEXITCODE\")",
+      "PowerShell(Get-Command *)",
+      "PowerShell(py *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(py -3.13 -m pip show feedparser PyYAML ollama edge-tts pytest APScheduler fuzzywuzzy python-Levenshtein)",
+      "Bash(New-Item -ItemType Directory -Force -Path \"content/prompts\",\"audio/assets/jingles\",\"audio/assets/music\",\"audio/assets/output/segments\",\"stream\",\"website\",\"website/_posts\",\"website/podcast\")",
+      "Bash(Out-Null)",
+      "Bash(New-Item -ItemType File -Force -Path \"content/prompts/.gitkeep\",\"audio/assets/jingles/.gitkeep\",\"audio/assets/music/.gitkeep\",\"audio/assets/output/segments/.gitkeep\",\"stream/.gitkeep\",\"website/.gitkeep\",\"website/_posts/.gitkeep\",\"website/podcast/.gitkeep\")"
+    ]
+  }
+}
