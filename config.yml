@@ -3,7 +3,7 @@ station:
   host: "Aria"
   tagline: "Thinking out loud, all day long."
   stream_url: "http://YOUR_ORACLE_IP:8000/stream"
-  website_url: "https://YOUR_GITHUB_USERNAME.github.io/the-long-view"
+  website_url: "https://clifford-smith.github.io/the-long-view"
 
 stream:
   host: "localhost"

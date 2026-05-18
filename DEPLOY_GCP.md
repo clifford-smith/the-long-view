@@ -149,7 +149,7 @@ Gemma 4 model memory usage at Q8 quantization:
 ## Step 6: Clone the repo and set up Python environment
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/the-long-view.git /home/ubuntu/the-long-view
+git clone https://github.com/clifford-smith/the-long-view.git /home/ubuntu/the-long-view
 cd /home/ubuntu/the-long-view
 python3.11 -m venv venv
 source venv/bin/activate
@@ -166,7 +166,7 @@ nano config.yml
 
 Replace:
 - `YOUR_ORACLE_IP` → your VM's external IP (GCP calls it `EXTERNAL_IP`)
-- `YOUR_GITHUB_USERNAME` → your GitHub username
+- `clifford-smith` → your GitHub username
 
 ---
 
@@ -343,7 +343,7 @@ Aria should be on air.
 ```bash
 # On your local machine (not the VM)
 cd /path/to/local/the-long-view
-git remote add origin https://github.com/YOUR_GITHUB_USERNAME/the-long-view.git
+git remote add origin https://github.com/clifford-smith/the-long-view.git
 git push -u origin main
 
 # Push the website folder to gh-pages branch
@@ -360,7 +360,7 @@ Update `website/index.html` and `website/_config.yml` with your real stream URL 
 
 Your podcast feed URL is:
 ```
-https://YOUR_GITHUB_USERNAME.github.io/the-long-view/podcast/feed.xml
+https://clifford-smith.github.io/the-long-view/podcast/feed.xml
 ```
 
 Submit to:
