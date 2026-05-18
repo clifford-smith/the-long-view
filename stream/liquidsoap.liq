@@ -36,10 +36,10 @@ radio = map_metadata(fun(m) -> [
 output.icecast(%mp3(bitrate=128),
   host     = "localhost",
   port     = 8000,
-  password = "CHANGE_THIS_SOURCE_PASSWORD",
+  password = "3udyxjtMpkV412!xb",
   mount    = "/stream",
   name        = "The Long View",
   description = "Thinking out loud, all day long.",
   genre       = "Talk / Ideas",
-  url         = "YOUR_WEBSITE_URL",
+  url         = "https://clifford-smith.github.io/the-long-view",
   radio)

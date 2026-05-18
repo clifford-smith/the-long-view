@@ -2,14 +2,14 @@ station:
   name: "The Long View"
   host: "Aria"
   tagline: "Thinking out loud, all day long."
-  stream_url: "http://YOUR_ORACLE_IP:8000/stream"
+  stream_url: "http://34.61.229.224:8000/stream"
   website_url: "https://clifford-smith.github.io/the-long-view"
 
 stream:
   host: "localhost"
   port: 8000
   mount: "/stream"
-  password: "changeme"
+  password: "3udyxjtMpkV412!xb"
 
 llm:
   model: "gemma4:e4b"
