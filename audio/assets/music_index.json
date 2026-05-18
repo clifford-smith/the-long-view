@@ -1,0 +1,13 @@
+{
+  "tracks": [
+    {
+      "path": "audio/assets/music/placeholder.mp3",
+      "mood": "calm",
+      "tempo": "slow",
+      "genre": "ambient",
+      "duration": 180,
+      "title": "Placeholder Track"
+    }
+  ],
+  "recently_played": []
+}
