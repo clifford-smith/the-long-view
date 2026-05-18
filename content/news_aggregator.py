@@ -1,4 +1,5 @@
 from __future__ import annotations
+import re
 import feedparser
 from datetime import datetime
 from difflib import SequenceMatcher
@@ -27,21 +28,14 @@ def fetch_feed(url: str, source_name: str) -> list[Story]:
         stories = []
         for entry in feed.entries[:10]:
             parsed = getattr(entry, 'published_parsed', None)
-            if parsed is None:
-                parsed = entry.get('published_parsed') if hasattr(entry, 'get') else None
             published = datetime(*parsed[:6]) if parsed else datetime.now()
-            title = getattr(entry, 'title', '') or entry.get('title', '') if hasattr(entry, 'get') else getattr(entry, 'title', '')
-            summary_raw = getattr(entry, 'summary', None)
-            if summary_raw is None and hasattr(entry, 'get'):
-                summary_raw = entry.get('summary', entry.get('description', ''))
-            summary = (summary_raw or '')[:500]
-            url_val = getattr(entry, 'link', '') or (entry.get('link', '') if hasattr(entry, 'get') else '')
+            summary = (getattr(entry, 'summary', None) or getattr(entry, 'description', '') or '')[:500]
             stories.append(Story(
-                title=title,
+                title=getattr(entry, 'title', ''),
                 summary=summary,
                 source=source_name,
                 published=published,
-                url=url_val,
+                url=getattr(entry, 'link', ''),
             ))
         return stories
     except Exception:
@@ -64,7 +58,7 @@ def score_story(story: Story) -> float:
     age_seconds = (datetime.now() - story.published).total_seconds()
     recency = max(0.0, 1.0 - age_seconds / 86400)
     text = (story.title + ' ' + story.summary).lower()
-    keyword_hits = sum(1 for kw in _INTEREST_KEYWORDS if kw in text)
+    keyword_hits = sum(1 for kw in _INTEREST_KEYWORDS if re.search(r'\b' + kw + r'\b', text))
     interest = keyword_hits / len(_INTEREST_KEYWORDS)
     return recency * 0.6 + interest * 0.4
 
