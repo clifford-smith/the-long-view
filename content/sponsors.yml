@@ -1,0 +1,7 @@
+sponsors: []
+# Each sponsor entry format:
+# - name: "Brilliant"
+#   copy: "This segment is brought to you by Brilliant — the best way to learn math, science, and computer science. Go to brilliant.org/longview for 30 days free."
+#   url: "https://brilliant.org/longview"
+#   active: false
+#   slots: ["the_stack", "deep_cuts", "night_school"]
