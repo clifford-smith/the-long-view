@@ -1,0 +1,70 @@
+station:
+  name: "The Long View"
+  host: "Aria"
+  tagline: "Thinking out loud, all day long."
+  stream_url: "http://YOUR_ORACLE_IP:8000/stream"
+  website_url: "https://YOUR_GITHUB_USERNAME.github.io/the-long-view"
+
+stream:
+  host: "localhost"
+  port: 8000
+  mount: "/stream"
+  password: "changeme"
+
+llm:
+  model: "llama3.1:8b"
+  base_url: "http://localhost:11434"
+
+tts:
+  voice: "en-US-AriaNeural"
+  rate: "-5%"
+  pitch: "-2Hz"
+
+feeds:
+  - url: "https://feeds.bbci.co.uk/news/world/rss.xml"
+    name: "BBC World"
+  - url: "https://feeds.reuters.com/reuters/topNews"
+    name: "Reuters"
+  - url: "https://hnrss.org/frontpage"
+    name: "Hacker News"
+  - url: "https://www.theguardian.com/world/rss"
+    name: "The Guardian"
+  - url: "https://aeon.co/feed.rss"
+    name: "Aeon"
+  - url: "https://www.quantamagazine.org/feed/"
+    name: "Quanta Magazine"
+  - url: "https://longreads.com/feed/"
+    name: "Longreads"
+  - url: "https://www.nature.com/nature.rss"
+    name: "Nature News"
+  - url: "https://fs.blog/feed/"
+    name: "Farnam Street"
+  - url: "https://www.economist.com/recent-updates/rss.xml"
+    name: "The Economist"
+
+schedule:
+  morning_drift: {start: "06:00", end: "09:00"}
+  the_stack:     {start: "09:00", end: "12:00"}
+  midday:        {start: "12:00", end: "14:00"}
+  deep_cuts:     {start: "14:00", end: "17:00"}
+  drive:         {start: "17:00", end: "19:00"}
+  night_school:  {start: "19:00", end: "22:00"}
+  archive:       {start: "22:00", end: "06:00"}
+
+paths:
+  music: "audio/assets/music"
+  music_index: "audio/assets/music_index.json"
+  jingles: "audio/assets/jingles"
+  segments: "audio/assets/output/segments"
+  prompts: "content/prompts"
+  website_posts: "website/_posts"
+  podcast_feed: "website/podcast/feed.xml"
+
+monetization:
+  kofi_url: ""
+  patreon_url: ""
+  affiliates:
+    bookshop: ""
+    audible: ""
+    brilliant: ""
+  sponsors: []
